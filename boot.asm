@@ -1,7 +1,25 @@
-ORG 0X7c00           ; BIOS loads the boot sector here
+ORG 0                ; Origin address for the bootloader
 BITS 16              ; Real mode code
 
+_start:
+    jmp short start     ; Jump to the start of the bootloader code
+    nop                ; Padding to ensure the jump instruction is 3 bytes long 
+
+times 33 db 0          ; For not corrupting the bootloader
+
 start:
+    jmp 0x7c0: step2     ; Jump to the code at 0x7c0, where the bootloader is loaded in memory
+
+step2:
+    cli                 ; Clear interrupts
+    mov ax, 0x7c0       ; Load the segment of the bootloader
+    mov ds, ax          ; Set DS to the segment of the bootloader
+    mov es, ax          ; Set ES to the segment of the bootloader
+    mov ax, 0x00        ; Load 0 into AX
+    mov ss, ax          ; Set SS to 0
+    mov sp, 0x7c00     ; Set SP to the top of the bootloader
+
+    sti                 ; Enable interrupts
     ; Print the null-terminated string at `message`
     mov si, message
     call print
