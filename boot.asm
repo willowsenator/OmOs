@@ -20,8 +20,25 @@ step2:
     mov sp, 0x7c00     ; Set SP to the top of the bootloader
 
     sti                 ; Enable interrupts
-    ; Print the null-terminated string at `message`
-    mov si, message
+
+    ; Read sector 2 from disk into memory using BIOS INT 0x13 AH=02h
+    mov ah, 0x02      ; BIOS function: read sectors
+    mov al, 1         ; Number of sectors to read
+    mov ch, 0         ; Cylinder number (0 = first cylinder)
+    mov cl, 2         ; Sector number (2 = second sector, 1-based)
+    mov dh, 0         ; Head number (0 = first head)
+    ; DL is already set by BIOS to the boot drive number
+    mov bx, buffer    ; ES:BX = destination address for the read data
+    int 0x13          ; Call BIOS disk interrupt
+    jc error          ; Jump to error handler if carry flag is set (read failed)
+
+    ; Read succeeded — print the data loaded from sector 2
+    mov si, buffer
+    call print
+    jmp $
+
+error:
+    mov si, error_message
     call print
     jmp $
 
@@ -37,7 +54,7 @@ print:
 print_char:
     mov ah, 0x09 ;Write char with color
     mov bh, 0 ;Page number
-    mov bl, 0x03 ;Green color
+    mov bl, 0x03 ; Color: cyan
     mov cx, 1
     int 0x10
 
@@ -52,6 +69,8 @@ print_char:
     int 0x10
     ret
 
-message: db 'Hello, OmOs!', 0
+error_message: db 'Failed to read disk', 0
 times 510-($-$$) db 0 ; Pad to 510 bytes
 dw 0xaa55             ; Boot signature
+
+buffer: ; Destination for data read from disk (past the 512-byte boot sector)
