@@ -7,8 +7,8 @@ all: $(BIN)
 
 $(BIN): $(SRC)
 	$(ASM) -f bin $< -o $@
-	dd if=./message.txt >> ./boot.bin
-	dd if=/dev/zero bs=512 count=1 >> ./boot.bin
+	dd if=./message.txt bs=511 count=1 conv=sync >> $@
+	printf '\0' >> $@
 
 run: $(BIN)
 	$(QEMU) -drive format=raw,file=$(BIN)
